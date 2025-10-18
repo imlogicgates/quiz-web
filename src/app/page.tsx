@@ -18,7 +18,7 @@ export default function QuizApp() {
     const loadQuiz = async () => {
       try {
         actions.setLoading();
-        const response = await fetch("/api/quiz?seed=quiz-session");
+        const response = await fetch("/api/quiz/");
         if (!response.ok) {
           throw new Error("Failed to load quiz");
         }
