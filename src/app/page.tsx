@@ -1,103 +1,280 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+import { QuizProgress } from "@/components/ProgressBar";
+import { QuestionCard } from "@/components/QuestionCard";
+import { QuestionReview } from "@/components/QuestionReview";
+import { QuizResults } from "@/components/QuizResults";
+import { useQuizState } from "@/hooks/useQuizState";
+import { GradeResult, Quiz, QuizSubmission } from "@/types/quiz";
+import { useEffect, useState } from "react";
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+export default function QuizApp() {
+  const { state, actions, computed } = useQuizState();
+  const [showReview, setShowReview] = useState(false);
+  const [startTime, setStartTime] = useState<number>(0);
+
+  // Load quiz data on component mount
+  useEffect(() => {
+    const loadQuiz = async () => {
+      try {
+        actions.setLoading();
+        const response = await fetch("/api/quiz?seed=quiz-session");
+        if (!response.ok) {
+          throw new Error("Failed to load quiz");
+        }
+        const quiz: Quiz = await response.json();
+        actions.setQuiz(quiz);
+      } catch (error) {
+        actions.setError(
+          error instanceof Error ? error.message : "Failed to load quiz"
+        );
+      }
+    };
+
+    loadQuiz();
+  }, [actions]);
+
+  // Timer effect
+  useEffect(() => {
+    if (state.status === "in-progress" && state.timeRemaining > 0) {
+      const timer = setInterval(() => {
+        const newTime = state.timeRemaining - 1;
+        actions.updateTimer(newTime);
+
+        if (newTime <= 0) {
+          handleSubmitQuiz();
+        }
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [state.status, state.timeRemaining, actions]);
+
+  const handleStartQuiz = () => {
+    setStartTime(Date.now());
+    actions.startQuiz();
+  };
+
+  const handleAnswerChange = (questionId: string, value: string | string[]) => {
+    actions.setAnswer(questionId, value);
+  };
+
+  const handleSubmitQuiz = async () => {
+    if (!state.quiz) return;
+
+    const timeSpent = Math.floor((Date.now() - startTime) / 1000);
+    const submission: QuizSubmission = {
+      quizId: state.quiz.id,
+      answers: Object.values(state.answers),
+      timeSpent,
+    };
+
+    try {
+      actions.submitQuiz(submission);
+
+      const response = await fetch("/api/grade", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(submission),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to grade quiz");
+      }
+
+      const grade: GradeResult = await response.json();
+      actions.setGrade(grade);
+    } catch (error) {
+      actions.setError(
+        error instanceof Error ? error.message : "Failed to grade quiz"
+      );
+    }
+  };
+
+  const handleRetakeQuiz = () => {
+    setShowReview(false);
+    actions.resetQuiz();
+    setStartTime(Date.now());
+    actions.startQuiz();
+  };
+
+  // Loading state
+  if (state.status === "loading") {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading quiz...</p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+      </div>
+    );
+  }
+
+  // Error state
+  if (state.status === "error") {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <strong className="font-bold">Error: </strong>
+            <span className="block sm:inline">{state.error}</span>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Quiz ready state
+  if (state.status === "ready" && state.quiz) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+            <h1 className="text-3xl font-bold text-gray-800 mb-4">
+              {state.quiz.title}
+            </h1>
+            <p className="text-lg text-gray-600 mb-6">
+              {state.quiz.description}
+            </p>
+            <div className="bg-blue-50 rounded-lg p-6 mb-6">
+              <h2 className="text-xl font-semibold text-blue-800 mb-2">
+                Quiz Information
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <span className="font-medium">Questions:</span>{" "}
+                  {state.quiz.questions.length}
+                </div>
+                <div>
+                  <span className="font-medium">Time Limit:</span>{" "}
+                  {state.quiz.timeLimit
+                    ? `${Math.floor(state.quiz.timeLimit / 60)} minutes`
+                    : "No limit"}
+                </div>
+                <div>
+                  <span className="font-medium">Question Types:</span> Text,
+                  Radio, Checkbox
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleStartQuiz}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-lg transition-colors"
+            >
+              Start Quiz
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Quiz in progress
+  if (
+    state.status === "in-progress" &&
+    state.quiz &&
+    computed.currentQuestion
+  ) {
+    const currentAnswer =
+      state.answers[computed.currentQuestion.id]?.value || "";
+
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4">
+          <QuizProgress
+            currentQuestion={state.currentQuestionIndex}
+            totalQuestions={state.quiz.questions.length}
+            answeredQuestions={computed.answeredQuestions}
+            timeRemaining={state.timeRemaining}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+
+          <QuestionCard
+            question={computed.currentQuestion}
+            questionNumber={state.currentQuestionIndex + 1}
+            totalQuestions={state.quiz.questions.length}
+            value={currentAnswer}
+            onChange={(value) =>
+              handleAnswerChange(computed.currentQuestion!.id, value)
+            }
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+
+          <div className="flex justify-between items-center mt-8">
+            <button
+              onClick={actions.prevQuestion}
+              disabled={computed.isFirstQuestion}
+              className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-2 px-6 rounded-lg transition-colors"
+            >
+              Previous
+            </button>
+
+            <div className="flex space-x-4">
+              {state.quiz.questions.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => actions.goToQuestion(index)}
+                  className={`w-10 h-10 rounded-full text-sm font-medium transition-colors ${
+                    index === state.currentQuestionIndex
+                      ? "bg-blue-600 text-white"
+                      : state.answers[state.quiz!.questions[index].id]
+                      ? "bg-green-100 text-green-800"
+                      : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                  }`}
+                >
+                  {index + 1}
+                </button>
+              ))}
+            </div>
+
+            {computed.isLastQuestion ? (
+              <button
+                onClick={handleSubmitQuiz}
+                className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+              >
+                Submit Quiz
+              </button>
+            ) : (
+              <button
+                onClick={actions.nextQuestion}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+              >
+                Next
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Quiz completed
+  if (state.status === "completed" && state.grade) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4">
+          <QuizResults grade={state.grade} onRetake={handleRetakeQuiz} />
+
+          <div className="mt-8 text-center">
+            <button
+              onClick={() => setShowReview(!showReview)}
+              className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+            >
+              {showReview ? "Hide" : "Show"} Question Review
+            </button>
+          </div>
+
+          {showReview && <QuestionReview grade={state.grade} />}
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
