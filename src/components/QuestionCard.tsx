@@ -1,6 +1,5 @@
-import React from 'react';
-import { Question } from '@/types/quiz';
-import { AnswerInput } from './AnswerInput';
+import { Question } from "@/types/quiz";
+import { AnswerInput } from "./AnswerInput";
 
 interface QuestionCardProps {
   question: Question;
@@ -17,7 +16,7 @@ export function QuestionCard({
   totalQuestions,
   value,
   onChange,
-  disabled = false
+  disabled = false,
 }: QuestionCardProps) {
   return (
     <div className="bg-gray-900 rounded-lg shadow-sm border border-pink-500 p-6">
@@ -26,7 +25,7 @@ export function QuestionCard({
           <h2 className="text-lg font-semibold text-pink-400">
             Question {questionNumber} of {totalQuestions}
           </h2>
-          <span className="px-3 py-1 bg-pink-100 text-pink-800 text-sm font-medium rounded-full">
+          <span className="px-3 py-1 text-pink-100 bg-pink-800 text-sm font-medium rounded-full">
             {question.type.charAt(0).toUpperCase() + question.type.slice(1)}
           </span>
         </div>
@@ -34,7 +33,7 @@ export function QuestionCard({
           {question.question}
         </p>
       </div>
-      
+
       <div className="mt-6">
         <AnswerInput
           question={question}
