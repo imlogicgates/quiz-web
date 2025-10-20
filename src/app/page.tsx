@@ -127,7 +127,6 @@ export default function QuizApp() {
         details,
       };
 
-      // Mark as submitted/completed and store grade
       actions.submit({
         quizId: state.quiz.id,
         answers: Object.values(state.answers),
@@ -155,7 +154,6 @@ export default function QuizApp() {
     return <ErrorStatus error={state.error || ""} />;
   }
 
-  // Quiz ready state
   if (state.status === "ready" && state.quiz) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
@@ -200,7 +198,6 @@ export default function QuizApp() {
     );
   }
 
-  // Quiz in progress
   if (
     state.status === "in-progress" &&
     state.quiz &&
@@ -277,7 +274,6 @@ export default function QuizApp() {
     );
   }
 
-  // Quiz completed
   if (state.status === "completed" && state.grade) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
