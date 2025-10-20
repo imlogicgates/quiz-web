@@ -26,10 +26,19 @@ export default function QuizApp() {
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/quiz`).then((res) =>
         res.json()
       ),
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: 1,
+    staleTime: 5 * 60 * 1000,
   });
 
   useEffect(() => {
-    if (!isLoadingQuiz && Array.isArray(quizzes) && quizzes.length > 0) {
+    if (
+      !isLoadingQuiz &&
+      !state.quiz &&
+      Array.isArray(quizzes) &&
+      quizzes.length > 0
+    ) {
       const mappedQuiz: Quiz = {
         id: "remote",
         title: "General Knowledge Quiz",
@@ -55,7 +64,7 @@ export default function QuizApp() {
 
       actions.loadQuiz(mappedQuiz);
     }
-  }, [quizzes, isLoadingQuiz, actions.loadQuiz]);
+  }, [quizzes, isLoadingQuiz, state.quiz, actions.loadQuiz]);
 
   const handleStartQuiz = () => {
     setStartTime(Date.now());
