@@ -55,44 +55,7 @@ export default function QuizApp() {
 
       actions.loadQuiz(mappedQuiz);
     }
-  }, [quizzes, actions, isLoadingQuiz]);
-
-  // // Load quiz data on component mount
-  // useEffect(() => {
-  //   const loadQuiz = async () => {
-  //     try {
-  //       actions.setLoading();
-  //       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/quiz`);
-  //       if (!response.ok) {
-  //         throw new Error("Failed to load quiz");
-  //       }
-  //       const quiz: Quiz = await response.json();
-  //       actions.setQuiz(quiz);
-  //     } catch (error) {
-  //       actions.setError(
-  //         error instanceof Error ? error.message : "Failed to load quiz"
-  //       );
-  //     }
-  //   };
-
-  //   loadQuiz();
-  // }, [actions]);
-
-  // Timer effect
-  // useEffect(() => {
-  //   if (state.status === "in-progress" && state.timeRemaining > 0) {
-  //     const timer = setInterval(() => {
-  //       const newTime = state.timeRemaining - 1;
-  //       actions.updateTimer(newTime);
-
-  //       if (newTime <= 0) {
-  //         handleSubmitQuiz();
-  //       }
-  //     }, 1000);
-
-  //     return () => clearInterval(timer);
-  //   }
-  // }, [state.status, state.timeRemaining, actions]);
+  }, [quizzes, isLoadingQuiz, actions.loadQuiz]);
 
   const handleStartQuiz = () => {
     setStartTime(Date.now());
