@@ -6,7 +6,8 @@ import { QuestionReview } from "@/components/QuestionReview";
 import { QuizResults } from "@/components/QuizResults";
 import { useQuizState } from "@/hooks/useQuizState";
 import { GradeResult, QuizSubmission } from "@/types/quiz";
-import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { ErrorStatus } from "./components/ErrorStatus";
 import { LoadingStatus } from "./components/LoadingStatus";
 
@@ -15,6 +16,23 @@ export default function QuizApp() {
   const [showReview, setShowReview] = useState(false);
   const [startTime, setStartTime] = useState<number>(0);
 
+  const {
+    data: quizzes,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["quiz"],
+    queryFn: () =>
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/quiz`).then((res) =>
+        res.json()
+      ),
+  });
+
+  useEffect(() => {
+    if (quizzes) {
+      console.log(quizzes);
+    }
+  }, [quizzes]);
   // // Load quiz data on component mount
   // useEffect(() => {
   //   const loadQuiz = async () => {
