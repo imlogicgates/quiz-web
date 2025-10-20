@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ErrorStatus } from "./components/ErrorStatus";
 import { LoadingStatus } from "./components/LoadingStatus";
+import { mapAnswersToBackend } from "./utils";
 
 export default function QuizApp() {
   const { state, actions, computed } = useQuizState();
@@ -74,31 +75,10 @@ export default function QuizApp() {
 
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
 
-    const answersForBackend = state.quiz.questions
-      .map((q) => {
-        const a = state.answers[q.id];
-        if (!a) return null;
-
-        if (q.type === "text") {
-          return { id: Number(q.id), value: (a.value as string) ?? "" };
-        }
-
-        if (q.type === "radio") {
-          const idx = (q.options ?? []).indexOf(a.value as string);
-          return { id: Number(q.id), value: idx };
-        }
-
-        if (q.type === "checkbox") {
-          const selected = Array.isArray(a.value) ? (a.value as string[]) : [];
-          const idxs = selected
-            .map((opt) => (q.options ?? []).indexOf(opt))
-            .filter((i) => i >= 0);
-          return { id: Number(q.id), value: idxs };
-        }
-
-        return null;
-      })
-      .filter(Boolean);
+    const answersForBackend = mapAnswersToBackend(
+      state.quiz.questions,
+      state.answers
+    );
 
     try {
       const response = await fetch(
