@@ -12,6 +12,7 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.5",
     "next": "15.5.6",
     "react": "19.1.0",
     "react-dom": "19.1.0"
@@ -19,6 +20,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@tanstack/eslint-plugin-query": "^5.91.2",
     "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
