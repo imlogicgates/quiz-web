@@ -169,22 +169,20 @@ export default function QuizApp() {
               <h2 className="text-xl font-semibold text-pink-400 mb-2">
                 Quiz Information
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-white">
                 <div>
-                  <span className="text-pink-400 font-medium">Questions:</span>{" "}
+                  <span className="font-medium">Questions:</span>{" "}
                   {state.quiz.questions.length}
                 </div>
                 <div>
-                  <span className="text-pink-400 font-medium">Time Limit:</span>{" "}
+                  <span className="font-medium">Time Limit:</span>{" "}
                   {state.quiz.timeLimit
                     ? `${Math.floor(state.quiz.timeLimit / 60)} minutes`
                     : "No limit"}
                 </div>
                 <div>
-                  <span className="text-pink-400 font-medium">
-                    Question Types:
-                  </span>{" "}
-                  Text, Radio, Checkbox
+                  <span className="font-medium">Question Types:</span> Text,
+                  Radio, Checkbox
                 </div>
               </div>
             </div>
