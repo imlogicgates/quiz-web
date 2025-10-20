@@ -1,6 +1,13 @@
+export type IncomingItem = {
+  id: number;
+  type: "radio" | "checkbox" | "text";
+  question: string;
+  choices?: string[];
+};
+
 export interface Question {
   id: string;
-  type: 'text' | 'radio' | 'checkbox';
+  type: "text" | "radio" | "checkbox";
   question: string;
   options?: string[];
   correctAnswer: string | string[];
@@ -50,7 +57,7 @@ export interface QuizState {
   currentQuestionIndex: number;
   answers: Record<string, Answer>;
   timeRemaining: number;
-  status: 'loading' | 'ready' | 'in-progress' | 'completed' | 'error';
+  status: "loading" | "ready" | "in-progress" | "completed" | "error";
   error: string | null;
   submission: QuizSubmission | null;
   grade: GradeResult | null;

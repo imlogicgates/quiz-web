@@ -7,7 +7,7 @@ import { QuizResults } from "@/components/QuizResults";
 import { useQuizState } from "@/hooks/useQuizState";
 import { GradeResult, QuizSubmission } from "@/types/quiz";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ErrorStatus } from "./components/ErrorStatus";
 import { LoadingStatus } from "./components/LoadingStatus";
 
@@ -29,6 +29,12 @@ export default function QuizApp() {
         res.json()
       ),
   });
+
+  useEffect(() => {
+    if (!isLoadingQuiz && !!quizzes?.length) {
+      actions.start();
+    }
+  }, [quizzes, actions, isLoadingQuiz]);
 
   // // Load quiz data on component mount
   // useEffect(() => {
@@ -69,11 +75,11 @@ export default function QuizApp() {
 
   const handleStartQuiz = () => {
     setStartTime(Date.now());
-    actions.startQuiz();
+    actions.start();
   };
 
   const handleAnswerChange = (questionId: string, value: string | string[]) => {
-    actions.setAnswer(questionId, value);
+    actions.answer(questionId, value);
   };
 
   const handleSubmitQuiz = async () => {
@@ -87,7 +93,7 @@ export default function QuizApp() {
     };
 
     try {
-      actions.submitQuiz(submission);
+      actions.submit(submission);
 
       const response = await fetch("/api/grade", {
         method: "POST",
@@ -112,17 +118,17 @@ export default function QuizApp() {
 
   const handleRetakeQuiz = () => {
     setShowReview(false);
-    actions.resetQuiz();
+    actions.reset();
     setStartTime(Date.now());
-    actions.startQuiz();
+    actions.start();
   };
 
-  if (isLoadingQuiz) {
+  if (state.status === "loading") {
     return <LoadingStatus />;
   }
 
-  if (isErrorQuiz) {
-    return <ErrorStatus error={errorQuiz?.message || "Failed to load quiz"} />;
+  if (state.status === "error") {
+    return <ErrorStatus error={state.error || ""} />;
   }
 
   // Quiz ready state
@@ -201,7 +207,7 @@ export default function QuizApp() {
 
           <div className="flex justify-between items-center mt-8">
             <button
-              onClick={actions.prevQuestion}
+              onClick={actions.prev}
               disabled={computed.isFirstQuestion}
               className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-2 px-6 rounded-lg transition-colors"
             >
@@ -212,7 +218,7 @@ export default function QuizApp() {
               {state.quiz.questions.map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => actions.goToQuestion(index)}
+                  onClick={() => actions.go(index)}
                   className={`w-10 h-10 rounded-full text-sm font-medium transition-colors ${
                     index === state.currentQuestionIndex
                       ? "bg-blue-600 text-white"
@@ -235,7 +241,7 @@ export default function QuizApp() {
               </button>
             ) : (
               <button
-                onClick={actions.nextQuestion}
+                onClick={actions.next}
                 className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
               >
                 Next
