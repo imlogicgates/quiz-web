@@ -1,103 +1,346 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+import { QuizProgress } from "@/components/ProgressBar";
+import { QuestionCard } from "@/components/QuestionCard";
+import { QuizResults } from "@/components/QuizResults";
+import { useQuizState } from "@/hooks/useQuizState";
+import { GradeResult, Question, Quiz } from "@/types/quiz";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { ErrorStatus } from "./components/ErrorStatus";
+import { LoadingStatus } from "./components/LoadingStatus";
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+export default function QuizApp() {
+  const { state, actions, computed } = useQuizState();
+  const [showReview, setShowReview] = useState(false);
+  const [startTime, setStartTime] = useState<number>(0);
+
+  const {
+    data: quizzes,
+    isLoading: isLoadingQuiz,
+    isError: isErrorQuiz,
+    error: errorQuiz,
+  } = useQuery({
+    queryKey: ["quiz"],
+    queryFn: () =>
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/quiz`).then((res) =>
+        res.json()
+      ),
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: 1,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  useEffect(() => {
+    if (
+      !isLoadingQuiz &&
+      !state.quiz &&
+      Array.isArray(quizzes) &&
+      quizzes.length > 0
+    ) {
+      const mappedQuiz: Quiz = {
+        id: "remote",
+        title: "General Knowledge Quiz",
+        description: "Answer the questions below.",
+        questions: (
+          quizzes as Array<{
+            id: number | string;
+            type: "text" | "checkbox" | "radio";
+            question: string;
+            choices?: string[];
+          }>
+        ).map((q) => {
+          const mappedQuestion: Question = {
+            id: String(q.id),
+            type: q.type,
+            question: q.question,
+            options: q.choices ?? [],
+            correctAnswer: "",
+          };
+          return mappedQuestion;
+        }),
+      };
+
+      actions.loadQuiz(mappedQuiz);
+    }
+  }, [quizzes, isLoadingQuiz, state.quiz, actions.loadQuiz]);
+
+  // Countdown timer: runs only while quiz is in progress and timeRemaining > 0
+  useEffect(() => {
+    if (state.status !== "in-progress") return;
+    if (!state.timeRemaining || state.timeRemaining <= 0) return;
+
+    const timer = setInterval(() => {
+      const next = state.timeRemaining - 1;
+      actions.setTimeRemaining(next);
+      if (next <= 0) {
+        clearInterval(timer);
+        handleSubmitQuiz();
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [state.status, state.timeRemaining, actions.setTimeRemaining]);
+
+  const handleStartQuiz = () => {
+    setStartTime(Date.now());
+    actions.start();
+  };
+
+  const handleAnswerChange = (questionId: string, value: string | string[]) => {
+    actions.answer(questionId, value);
+  };
+
+  const handleSubmitQuiz = async () => {
+    if (!state.quiz) return;
+
+    const timeSpent = Math.floor((Date.now() - startTime) / 1000);
+
+    // Build backend grade request from current answers
+    const answersForBackend = state.quiz.questions
+      .map((q) => {
+        const a = state.answers[q.id];
+        if (!a) return null;
+
+        if (q.type === "text") {
+          return { id: Number(q.id), value: (a.value as string) ?? "" };
+        }
+
+        if (q.type === "radio") {
+          const idx = (q.options ?? []).indexOf(a.value as string);
+          return { id: Number(q.id), value: idx };
+        }
+
+        if (q.type === "checkbox") {
+          const selected = Array.isArray(a.value) ? (a.value as string[]) : [];
+          const idxs = selected
+            .map((opt) => (q.options ?? []).indexOf(opt))
+            .filter((i) => i >= 0);
+          return { id: Number(q.id), value: idxs };
+        }
+
+        return null;
+      })
+      .filter(Boolean);
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/grade`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ answers: answersForBackend }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to grade quiz");
+      }
+
+      const serverGrade: {
+        score: number;
+        total: number;
+        results: Array<{ id: string | number; correct: boolean }>;
+      } = await response.json();
+
+      const totalQuestions = serverGrade.total;
+      const correctAnswers = serverGrade.score;
+      const incorrectAnswers = totalQuestions - correctAnswers;
+      const unanswered = 0;
+      const percentage = Math.round(
+        (correctAnswers / Math.max(1, totalQuestions)) * 100
+      );
+
+      const details = state.quiz.questions.map((q) => {
+        const userAnswer =
+          state.answers[q.id]?.value ?? (q.type === "checkbox" ? [] : "");
+        const result = serverGrade.results.find(
+          (r) => String(r.id) === String(q.id)
+        );
+        return {
+          questionId: String(q.id),
+          correct: result ? result.correct : false,
+          userAnswer,
+          correctAnswer: q.type === "checkbox" ? [] : "",
+          explanation: undefined,
+        };
+      });
+
+      const grade: GradeResult = {
+        score: correctAnswers,
+        totalQuestions,
+        percentage,
+        correctAnswers,
+        incorrectAnswers,
+        unanswered,
+        timeSpent,
+        details,
+      };
+
+      // Mark as submitted/completed and store grade
+      actions.submit({
+        quizId: state.quiz.id,
+        answers: Object.values(state.answers),
+        timeSpent,
+      });
+      actions.setGrade(grade);
+    } catch (error) {
+      actions.setError(
+        error instanceof Error ? error.message : "Failed to grade quiz"
+      );
+    }
+  };
+
+  const handleRetakeQuiz = () => {
+    setShowReview(false);
+    actions.reset();
+    setStartTime(Date.now());
+    actions.start();
+  };
+
+  if (state.status === "loading") {
+    return <LoadingStatus />;
+  }
+
+  if (state.status === "error") {
+    return <ErrorStatus error={state.error || ""} />;
+  }
+
+  // Quiz ready state
+  if (state.status === "ready" && state.quiz) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+            <h1 className="text-3xl font-bold text-gray-800 mb-4">
+              {state.quiz.title}
+            </h1>
+            <p className="text-lg text-gray-600 mb-6">
+              {state.quiz.description}
+            </p>
+            <div className="bg-blue-50 rounded-lg p-6 mb-6">
+              <h2 className="text-xl font-semibold text-blue-800 mb-2">
+                Quiz Information
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <span className="font-medium">Questions:</span>{" "}
+                  {state.quiz.questions.length}
+                </div>
+                <div>
+                  <span className="font-medium">Time Limit:</span>{" "}
+                  {state.quiz.timeLimit
+                    ? `${Math.floor(state.quiz.timeLimit / 60)} minutes`
+                    : "No limit"}
+                </div>
+                <div>
+                  <span className="font-medium">Question Types:</span> Text,
+                  Radio, Checkbox
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleStartQuiz}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-lg transition-colors"
+            >
+              Start Quiz
+            </button>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+      </div>
+    );
+  }
+
+  // Quiz in progress
+  if (
+    state.status === "in-progress" &&
+    state.quiz &&
+    computed.currentQuestion
+  ) {
+    const currentAnswer =
+      state.answers[computed.currentQuestion.id]?.value || "";
+
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4">
+          <QuizProgress
+            currentQuestion={state.currentQuestionIndex}
+            totalQuestions={state.quiz.questions.length}
+            answeredQuestions={computed.answeredQuestions}
+            timeRemaining={state.timeRemaining}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+
+          <QuestionCard
+            question={computed.currentQuestion}
+            questionNumber={state.currentQuestionIndex + 1}
+            totalQuestions={state.quiz.questions.length}
+            value={currentAnswer}
+            onChange={(value) =>
+              handleAnswerChange(computed.currentQuestion!.id, value)
+            }
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+
+          <div className="flex justify-between items-center mt-8">
+            <button
+              onClick={actions.prev}
+              disabled={computed.isFirstQuestion}
+              className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-2 px-6 rounded-lg transition-colors"
+            >
+              Previous
+            </button>
+
+            <div className="flex space-x-4">
+              {state.quiz.questions.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => actions.go(index)}
+                  className={`w-10 h-10 rounded-full text-sm font-medium transition-colors ${
+                    index === state.currentQuestionIndex
+                      ? "bg-blue-600 text-white"
+                      : state.answers[state.quiz!.questions[index].id]
+                      ? "bg-green-100 text-green-800"
+                      : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                  }`}
+                >
+                  {index + 1}
+                </button>
+              ))}
+            </div>
+
+            {computed.isLastQuestion ? (
+              <button
+                onClick={handleSubmitQuiz}
+                className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+              >
+                Submit Quiz
+              </button>
+            ) : (
+              <button
+                onClick={actions.next}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+              >
+                Next
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Quiz completed
+  if (state.status === "completed" && state.grade) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4">
+          <QuizResults grade={state.grade} onRetake={handleRetakeQuiz} />
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
