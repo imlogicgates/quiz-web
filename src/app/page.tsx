@@ -66,23 +66,6 @@ export default function QuizApp() {
     }
   }, [quizzes, isLoadingQuiz, state.quiz, actions.loadQuiz]);
 
-  // Countdown timer: runs only while quiz is in progress and timeRemaining > 0
-  useEffect(() => {
-    if (state.status !== "in-progress") return;
-    if (!state.timeRemaining || state.timeRemaining <= 0) return;
-
-    const timer = setInterval(() => {
-      const next = state.timeRemaining - 1;
-      actions.setTimeRemaining(next);
-      if (next <= 0) {
-        clearInterval(timer);
-        handleSubmitQuiz();
-      }
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [state.status, state.timeRemaining, actions.setTimeRemaining]);
-
   const handleStartQuiz = () => {
     setStartTime(Date.now());
     actions.start();
