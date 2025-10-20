@@ -2,10 +2,9 @@
 
 import { QuizProgress } from "@/components/ProgressBar";
 import { QuestionCard } from "@/components/QuestionCard";
-import { QuestionReview } from "@/components/QuestionReview";
 import { QuizResults } from "@/components/QuizResults";
 import { useQuizState } from "@/hooks/useQuizState";
-import { GradeResult, QuizSubmission } from "@/types/quiz";
+import { GradeResult, Question, Quiz } from "@/types/quiz";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ErrorStatus } from "./components/ErrorStatus";
@@ -23,7 +22,6 @@ export default function QuizApp() {
     error: errorQuiz,
   } = useQuery({
     queryKey: ["quiz"],
-
     queryFn: () =>
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/quiz`).then((res) =>
         res.json()
@@ -31,8 +29,31 @@ export default function QuizApp() {
   });
 
   useEffect(() => {
-    if (!isLoadingQuiz && !!quizzes?.length) {
-      actions.start();
+    if (!isLoadingQuiz && Array.isArray(quizzes) && quizzes.length > 0) {
+      const mappedQuiz: Quiz = {
+        id: "remote",
+        title: "General Knowledge Quiz",
+        description: "Answer the questions below.",
+        questions: (
+          quizzes as Array<{
+            id: number | string;
+            type: "text" | "checkbox" | "radio";
+            question: string;
+            choices?: string[];
+          }>
+        ).map((q) => {
+          const mappedQuestion: Question = {
+            id: String(q.id),
+            type: q.type,
+            question: q.question,
+            options: q.choices ?? [],
+            correctAnswer: "",
+          };
+          return mappedQuestion;
+        }),
+      };
+
+      actions.loadQuiz(mappedQuiz);
     }
   }, [quizzes, actions, isLoadingQuiz]);
 
@@ -86,28 +107,96 @@ export default function QuizApp() {
     if (!state.quiz) return;
 
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
-    const submission: QuizSubmission = {
-      quizId: state.quiz.id,
-      answers: Object.values(state.answers),
-      timeSpent,
-    };
+
+    // Build backend grade request from current answers
+    const answersForBackend = state.quiz.questions
+      .map((q) => {
+        const a = state.answers[q.id];
+        if (!a) return null;
+
+        if (q.type === "text") {
+          return { id: Number(q.id), value: (a.value as string) ?? "" };
+        }
+
+        if (q.type === "radio") {
+          const idx = (q.options ?? []).indexOf(a.value as string);
+          return { id: Number(q.id), value: idx };
+        }
+
+        if (q.type === "checkbox") {
+          const selected = Array.isArray(a.value) ? (a.value as string[]) : [];
+          const idxs = selected
+            .map((opt) => (q.options ?? []).indexOf(opt))
+            .filter((i) => i >= 0);
+          return { id: Number(q.id), value: idxs };
+        }
+
+        return null;
+      })
+      .filter(Boolean);
 
     try {
-      actions.submit(submission);
-
-      const response = await fetch("/api/grade", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(submission),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/grade`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ answers: answersForBackend }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to grade quiz");
       }
 
-      const grade: GradeResult = await response.json();
+      const serverGrade: {
+        score: number;
+        total: number;
+        results: Array<{ id: string | number; correct: boolean }>;
+      } = await response.json();
+
+      const totalQuestions = serverGrade.total;
+      const correctAnswers = serverGrade.score;
+      const incorrectAnswers = totalQuestions - correctAnswers;
+      const unanswered = 0;
+      const percentage = Math.round(
+        (correctAnswers / Math.max(1, totalQuestions)) * 100
+      );
+
+      const details = state.quiz.questions.map((q) => {
+        const userAnswer =
+          state.answers[q.id]?.value ?? (q.type === "checkbox" ? [] : "");
+        const result = serverGrade.results.find(
+          (r) => String(r.id) === String(q.id)
+        );
+        return {
+          questionId: String(q.id),
+          correct: result ? result.correct : false,
+          userAnswer,
+          correctAnswer: q.type === "checkbox" ? [] : "",
+          explanation: undefined,
+        };
+      });
+
+      const grade: GradeResult = {
+        score: correctAnswers,
+        totalQuestions,
+        percentage,
+        correctAnswers,
+        incorrectAnswers,
+        unanswered,
+        timeSpent,
+        details,
+      };
+
+      // Mark as submitted/completed and store grade
+      actions.submit({
+        quizId: state.quiz.id,
+        answers: Object.values(state.answers),
+        timeSpent,
+      });
       actions.setGrade(grade);
     } catch (error) {
       actions.setError(
@@ -259,17 +348,6 @@ export default function QuizApp() {
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-4xl mx-auto px-4">
           <QuizResults grade={state.grade} onRetake={handleRetakeQuiz} />
-
-          <div className="mt-8 text-center">
-            <button
-              onClick={() => setShowReview(!showReview)}
-              className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
-            >
-              {showReview ? "Hide" : "Show"} Question Review
-            </button>
-          </div>
-
-          {showReview && <QuestionReview grade={state.grade} />}
         </div>
       </div>
     );
