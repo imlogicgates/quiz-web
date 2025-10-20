@@ -33,7 +33,7 @@ export function AnswerInput({ question, value, onChange, disabled = false }: Ans
         value={value as string || ''}
         onChange={handleTextChange}
         disabled={disabled}
-        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+        className="w-full px-4 py-3 border border-gray-600 bg-gray-800 text-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent disabled:bg-gray-700 disabled:cursor-not-allowed"
         placeholder="Enter your answer..."
       />
     );
@@ -47,8 +47,8 @@ export function AnswerInput({ question, value, onChange, disabled = false }: Ans
             key={option}
             className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
               value === option
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'border-pink-500 bg-pink-50'
+                : 'border-gray-600 hover:border-gray-500'
             } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
           >
             <input
@@ -58,9 +58,9 @@ export function AnswerInput({ question, value, onChange, disabled = false }: Ans
               checked={value === option}
               onChange={() => handleRadioChange(option)}
               disabled={disabled}
-              className="mr-3 text-blue-600 focus:ring-blue-500"
+              className="mr-3 text-pink-600 focus:ring-pink-500"
             />
-            <span className="text-gray-700">{option}</span>
+            <span className="text-gray-300">{option}</span>
           </label>
         ))}
       </div>
@@ -77,8 +77,8 @@ export function AnswerInput({ question, value, onChange, disabled = false }: Ans
             key={option}
             className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
               currentValues.includes(option)
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'border-pink-500 bg-pink-50'
+                : 'border-gray-600 hover:border-gray-500'
             } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
           >
             <input
@@ -88,9 +88,9 @@ export function AnswerInput({ question, value, onChange, disabled = false }: Ans
               checked={currentValues.includes(option)}
               onChange={(e) => handleCheckboxChange(option, e.target.checked)}
               disabled={disabled}
-              className="mr-3 text-blue-600 focus:ring-blue-500"
+              className="mr-3 text-pink-600 focus:ring-pink-500"
             />
-            <span className="text-gray-700">{option}</span>
+            <span className="text-gray-300">{option}</span>
           </label>
         ))}
       </div>

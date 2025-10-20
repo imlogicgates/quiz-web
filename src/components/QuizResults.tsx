@@ -8,9 +8,9 @@ interface QuizResultsProps {
 
 export function QuizResults({ grade, onRetake }: QuizResultsProps) {
   const getScoreColor = (percentage: number) => {
-    if (percentage >= 80) return 'text-green-600';
-    if (percentage >= 60) return 'text-yellow-600';
-    return 'text-red-600';
+    if (percentage >= 80) return 'text-pink-400';
+    if (percentage >= 60) return 'text-pink-300';
+    return 'text-pink-200';
   };
 
   const getScoreMessage = (percentage: number) => {
@@ -23,29 +23,29 @@ export function QuizResults({ grade, onRetake }: QuizResultsProps) {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+      <div className="bg-gray-900 rounded-lg shadow-sm border border-pink-500 p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Quiz Complete!</h1>
-          <p className="text-lg text-gray-600">{getScoreMessage(grade.percentage)}</p>
+          <h1 className="text-3xl font-bold text-pink-400 mb-2">Quiz Complete!</h1>
+          <p className="text-lg text-gray-300">{getScoreMessage(grade.percentage)}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-blue-50 rounded-lg p-6 text-center">
+          <div className="bg-pink-50 rounded-lg p-6 text-center">
             <div className={`text-4xl font-bold ${getScoreColor(grade.percentage)}`}>
               {grade.percentage}%
             </div>
             <div className="text-gray-600 mt-2">Final Score</div>
           </div>
           
-          <div className="bg-green-50 rounded-lg p-6 text-center">
-            <div className="text-4xl font-bold text-green-600">
+          <div className="bg-pink-50 rounded-lg p-6 text-center">
+            <div className="text-4xl font-bold text-pink-600">
               {grade.correctAnswers}
             </div>
             <div className="text-gray-600 mt-2">Correct</div>
           </div>
           
-          <div className="bg-red-50 rounded-lg p-6 text-center">
-            <div className="text-4xl font-bold text-red-600">
+          <div className="bg-pink-50 rounded-lg p-6 text-center">
+            <div className="text-4xl font-bold text-pink-600">
               {grade.incorrectAnswers + grade.unanswered}
             </div>
             <div className="text-gray-600 mt-2">Incorrect</div>

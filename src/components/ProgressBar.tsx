@@ -12,9 +12,9 @@ export function ProgressBar({
   const percentage = total > 0 ? (current / total) * 100 : 0;
 
   return (
-    <div className={`w-full bg-gray-200 rounded-full h-2 ${className}`}>
+    <div className={`w-full bg-gray-700 rounded-full h-2 ${className}`}>
       <div
-        className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+        className="bg-pink-500 h-2 rounded-full transition-all duration-300 ease-out"
         style={{ width: `${percentage}%` }}
       />
     </div>
@@ -33,13 +33,13 @@ export function QuizProgress({
   answeredQuestions,
 }: QuizProgressProps) {
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+    <div className="bg-gray-900 rounded-lg shadow-sm border border-pink-500 p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-4">
-          <div className="text-sm font-medium text-gray-600">
+          <div className="text-sm font-medium text-gray-300">
             Question {currentQuestion + 1} of {totalQuestions}
           </div>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-gray-400">
             {answeredQuestions} answered
           </div>
         </div>
