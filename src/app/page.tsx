@@ -7,7 +7,7 @@ import { QuizResults } from "@/components/QuizResults";
 import { useQuizState } from "@/hooks/useQuizState";
 import { GradeResult, QuizSubmission } from "@/types/quiz";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ErrorStatus } from "./components/ErrorStatus";
 import { LoadingStatus } from "./components/LoadingStatus";
 
@@ -18,21 +18,18 @@ export default function QuizApp() {
 
   const {
     data: quizzes,
-    isLoading,
-    isError,
+    isLoading: isLoadingQuiz,
+    isError: isErrorQuiz,
+    error: errorQuiz,
   } = useQuery({
     queryKey: ["quiz"],
+
     queryFn: () =>
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/quiz`).then((res) =>
         res.json()
       ),
   });
 
-  useEffect(() => {
-    if (quizzes) {
-      console.log(quizzes);
-    }
-  }, [quizzes]);
   // // Load quiz data on component mount
   // useEffect(() => {
   //   const loadQuiz = async () => {
@@ -120,12 +117,12 @@ export default function QuizApp() {
     actions.startQuiz();
   };
 
-  if (state.status === "loading") {
+  if (isLoadingQuiz) {
     return <LoadingStatus />;
   }
 
-  if (state.status === "error") {
-    return <ErrorStatus error={state.error || ""} />;
+  if (isErrorQuiz) {
+    return <ErrorStatus error={errorQuiz?.message || "Failed to load quiz"} />;
   }
 
   // Quiz ready state
