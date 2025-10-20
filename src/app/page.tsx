@@ -74,7 +74,6 @@ export default function QuizApp() {
 
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
 
-    // Build backend grade request from current answers
     const answersForBackend = state.quiz.questions
       .map((q) => {
         const a = state.answers[q.id];
