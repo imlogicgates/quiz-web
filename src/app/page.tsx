@@ -5,8 +5,8 @@ import { QuestionCard } from "@/components/QuestionCard";
 import { QuestionReview } from "@/components/QuestionReview";
 import { QuizResults } from "@/components/QuizResults";
 import { useQuizState } from "@/hooks/useQuizState";
-import { GradeResult, Quiz, QuizSubmission } from "@/types/quiz";
-import { useEffect, useState } from "react";
+import { GradeResult, QuizSubmission } from "@/types/quiz";
+import { useState } from "react";
 import { ErrorStatus } from "./components/ErrorStatus";
 import { LoadingStatus } from "./components/LoadingStatus";
 
@@ -15,42 +15,42 @@ export default function QuizApp() {
   const [showReview, setShowReview] = useState(false);
   const [startTime, setStartTime] = useState<number>(0);
 
-  // Load quiz data on component mount
-  useEffect(() => {
-    const loadQuiz = async () => {
-      try {
-        actions.setLoading();
-        const response = await fetch("/api/quiz/");
-        if (!response.ok) {
-          throw new Error("Failed to load quiz");
-        }
-        const quiz: Quiz = await response.json();
-        actions.setQuiz(quiz);
-      } catch (error) {
-        actions.setError(
-          error instanceof Error ? error.message : "Failed to load quiz"
-        );
-      }
-    };
+  // // Load quiz data on component mount
+  // useEffect(() => {
+  //   const loadQuiz = async () => {
+  //     try {
+  //       actions.setLoading();
+  //       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/quiz`);
+  //       if (!response.ok) {
+  //         throw new Error("Failed to load quiz");
+  //       }
+  //       const quiz: Quiz = await response.json();
+  //       actions.setQuiz(quiz);
+  //     } catch (error) {
+  //       actions.setError(
+  //         error instanceof Error ? error.message : "Failed to load quiz"
+  //       );
+  //     }
+  //   };
 
-    loadQuiz();
-  }, [actions]);
+  //   loadQuiz();
+  // }, [actions]);
 
   // Timer effect
-  useEffect(() => {
-    if (state.status === "in-progress" && state.timeRemaining > 0) {
-      const timer = setInterval(() => {
-        const newTime = state.timeRemaining - 1;
-        actions.updateTimer(newTime);
+  // useEffect(() => {
+  //   if (state.status === "in-progress" && state.timeRemaining > 0) {
+  //     const timer = setInterval(() => {
+  //       const newTime = state.timeRemaining - 1;
+  //       actions.updateTimer(newTime);
 
-        if (newTime <= 0) {
-          handleSubmitQuiz();
-        }
-      }, 1000);
+  //       if (newTime <= 0) {
+  //         handleSubmitQuiz();
+  //       }
+  //     }, 1000);
 
-      return () => clearInterval(timer);
-    }
-  }, [state.status, state.timeRemaining, actions]);
+  //     return () => clearInterval(timer);
+  //   }
+  // }, [state.status, state.timeRemaining, actions]);
 
   const handleStartQuiz = () => {
     setStartTime(Date.now());
@@ -102,7 +102,6 @@ export default function QuizApp() {
     actions.startQuiz();
   };
 
-  // Loading state
   if (state.status === "loading") {
     return <LoadingStatus />;
   }
