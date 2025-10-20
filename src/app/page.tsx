@@ -9,18 +9,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ErrorStatus } from "./components/ErrorStatus";
 import { LoadingStatus } from "./components/LoadingStatus";
+import { detailsToGrade, mapAnswersToBackend } from "./utils";
 
 export default function QuizApp() {
   const { state, actions, computed } = useQuizState();
-  const [showReview, setShowReview] = useState(false);
   const [startTime, setStartTime] = useState<number>(0);
 
-  const {
-    data: quizzes,
-    isLoading: isLoadingQuiz,
-    isError: isErrorQuiz,
-    error: errorQuiz,
-  } = useQuery({
+  const { data: quizzes, isLoading: isLoadingQuiz } = useQuery({
     queryKey: ["quiz"],
     queryFn: () =>
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/quiz`).then((res) =>
@@ -41,7 +36,7 @@ export default function QuizApp() {
     ) {
       const mappedQuiz: Quiz = {
         id: "remote",
-        title: "General Knowledge Quiz",
+        title: "Blackpink Knowledge Quiz",
         description: "Answer the questions below.",
         questions: (
           quizzes as Array<{
@@ -66,23 +61,6 @@ export default function QuizApp() {
     }
   }, [quizzes, isLoadingQuiz, state.quiz, actions.loadQuiz]);
 
-  // Countdown timer: runs only while quiz is in progress and timeRemaining > 0
-  useEffect(() => {
-    if (state.status !== "in-progress") return;
-    if (!state.timeRemaining || state.timeRemaining <= 0) return;
-
-    const timer = setInterval(() => {
-      const next = state.timeRemaining - 1;
-      actions.setTimeRemaining(next);
-      if (next <= 0) {
-        clearInterval(timer);
-        handleSubmitQuiz();
-      }
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [state.status, state.timeRemaining, actions.setTimeRemaining]);
-
   const handleStartQuiz = () => {
     setStartTime(Date.now());
     actions.start();
@@ -97,32 +75,10 @@ export default function QuizApp() {
 
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
 
-    // Build backend grade request from current answers
-    const answersForBackend = state.quiz.questions
-      .map((q) => {
-        const a = state.answers[q.id];
-        if (!a) return null;
-
-        if (q.type === "text") {
-          return { id: Number(q.id), value: (a.value as string) ?? "" };
-        }
-
-        if (q.type === "radio") {
-          const idx = (q.options ?? []).indexOf(a.value as string);
-          return { id: Number(q.id), value: idx };
-        }
-
-        if (q.type === "checkbox") {
-          const selected = Array.isArray(a.value) ? (a.value as string[]) : [];
-          const idxs = selected
-            .map((opt) => (q.options ?? []).indexOf(opt))
-            .filter((i) => i >= 0);
-          return { id: Number(q.id), value: idxs };
-        }
-
-        return null;
-      })
-      .filter(Boolean);
+    const answersForBackend = mapAnswersToBackend(
+      state.quiz.questions,
+      state.answers
+    );
 
     try {
       const response = await fetch(
@@ -154,20 +110,11 @@ export default function QuizApp() {
         (correctAnswers / Math.max(1, totalQuestions)) * 100
       );
 
-      const details = state.quiz.questions.map((q) => {
-        const userAnswer =
-          state.answers[q.id]?.value ?? (q.type === "checkbox" ? [] : "");
-        const result = serverGrade.results.find(
-          (r) => String(r.id) === String(q.id)
-        );
-        return {
-          questionId: String(q.id),
-          correct: result ? result.correct : false,
-          userAnswer,
-          correctAnswer: q.type === "checkbox" ? [] : "",
-          explanation: undefined,
-        };
-      });
+      const details = detailsToGrade(
+        state.quiz.questions,
+        state.answers,
+        serverGrade.results
+      );
 
       const grade: GradeResult = {
         score: correctAnswers,
@@ -180,7 +127,6 @@ export default function QuizApp() {
         details,
       };
 
-      // Mark as submitted/completed and store grade
       actions.submit({
         quizId: state.quiz.id,
         answers: Object.values(state.answers),
@@ -195,7 +141,6 @@ export default function QuizApp() {
   };
 
   const handleRetakeQuiz = () => {
-    setShowReview(false);
     actions.reset();
     setStartTime(Date.now());
     actions.start();
@@ -209,20 +154,19 @@ export default function QuizApp() {
     return <ErrorStatus error={state.error || ""} />;
   }
 
-  // Quiz ready state
   if (state.status === "ready" && state.quiz) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen bg-black py-8">
         <div className="max-w-4xl mx-auto px-4">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-            <h1 className="text-3xl font-bold text-gray-800 mb-4">
+          <div className="bg-gray-900 rounded-lg shadow-sm border border-pink-500 p-8 text-center">
+            <h1 className="text-3xl font-bold text-pink-400 mb-4">
               {state.quiz.title}
             </h1>
-            <p className="text-lg text-gray-600 mb-6">
+            <p className="text-lg text-gray-300 mb-6">
               {state.quiz.description}
             </p>
-            <div className="bg-blue-50 rounded-lg p-6 mb-6">
-              <h2 className="text-xl font-semibold text-blue-800 mb-2">
+            <div className="bg-gray-800 rounded-lg p-6 mb-6">
+              <h2 className="text-xl font-semibold text-pink-400 mb-2">
                 Quiz Information
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -244,7 +188,7 @@ export default function QuizApp() {
             </div>
             <button
               onClick={handleStartQuiz}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-lg transition-colors"
+              className="bg-pink-600 hover:bg-pink-700 text-white font-medium py-3 px-8 rounded-lg transition-colors"
             >
               Start Quiz
             </button>
@@ -254,7 +198,6 @@ export default function QuizApp() {
     );
   }
 
-  // Quiz in progress
   if (
     state.status === "in-progress" &&
     state.quiz &&
@@ -264,13 +207,12 @@ export default function QuizApp() {
       state.answers[computed.currentQuestion.id]?.value || "";
 
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen bg-black py-8">
         <div className="max-w-4xl mx-auto px-4">
           <QuizProgress
             currentQuestion={state.currentQuestionIndex}
             totalQuestions={state.quiz.questions.length}
             answeredQuestions={computed.answeredQuestions}
-            timeRemaining={state.timeRemaining}
           />
 
           <QuestionCard
@@ -287,7 +229,7 @@ export default function QuizApp() {
             <button
               onClick={actions.prev}
               disabled={computed.isFirstQuestion}
-              className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-2 px-6 rounded-lg transition-colors"
+              className="bg-pink-600 hover:bg-pink-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium py-2 px-6 rounded-lg transition-colors"
             >
               Previous
             </button>
@@ -299,10 +241,10 @@ export default function QuizApp() {
                   onClick={() => actions.go(index)}
                   className={`w-10 h-10 rounded-full text-sm font-medium transition-colors ${
                     index === state.currentQuestionIndex
-                      ? "bg-blue-600 text-white"
+                      ? "bg-pink-600 text-white"
                       : state.answers[state.quiz!.questions[index].id]
-                      ? "bg-green-100 text-green-800"
-                      : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                      ? "bg-pink-100 text-pink-800"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                   }`}
                 >
                   {index + 1}
@@ -313,14 +255,14 @@ export default function QuizApp() {
             {computed.isLastQuestion ? (
               <button
                 onClick={handleSubmitQuiz}
-                className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+                className="bg-pink-600 hover:bg-pink-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
               >
                 Submit Quiz
               </button>
             ) : (
               <button
                 onClick={actions.next}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+                className="bg-pink-600 hover:bg-pink-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
               >
                 Next
               </button>
@@ -331,10 +273,9 @@ export default function QuizApp() {
     );
   }
 
-  // Quiz completed
   if (state.status === "completed" && state.grade) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen bg-black py-8">
         <div className="max-w-4xl mx-auto px-4">
           <QuizResults grade={state.grade} onRetake={handleRetakeQuiz} />
         </div>
