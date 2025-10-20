@@ -1,12 +1,14 @@
-import React from 'react';
-
 interface ProgressBarProps {
   current: number;
   total: number;
   className?: string;
 }
 
-export function ProgressBar({ current, total, className = '' }: ProgressBarProps) {
+export function ProgressBar({
+  current,
+  total,
+  className = "",
+}: ProgressBarProps) {
   const percentage = total > 0 ? (current / total) * 100 : 0;
 
   return (
@@ -23,21 +25,13 @@ interface QuizProgressProps {
   currentQuestion: number;
   totalQuestions: number;
   answeredQuestions: number;
-  timeRemaining?: number;
 }
 
-export function QuizProgress({ 
-  currentQuestion, 
-  totalQuestions, 
-  answeredQuestions, 
-  timeRemaining 
+export function QuizProgress({
+  currentQuestion,
+  totalQuestions,
+  answeredQuestions,
 }: QuizProgressProps) {
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
@@ -49,13 +43,6 @@ export function QuizProgress({
             {answeredQuestions} answered
           </div>
         </div>
-        {timeRemaining !== undefined && (
-          <div className={`text-sm font-medium ${
-            timeRemaining < 60 ? 'text-red-600' : 'text-gray-600'
-          }`}>
-            {formatTime(timeRemaining)}
-          </div>
-        )}
       </div>
       <ProgressBar current={currentQuestion + 1} total={totalQuestions} />
     </div>

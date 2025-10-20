@@ -213,7 +213,6 @@ export default function QuizApp() {
             currentQuestion={state.currentQuestionIndex}
             totalQuestions={state.quiz.questions.length}
             answeredQuestions={computed.answeredQuestions}
-            timeRemaining={state.timeRemaining}
           />
 
           <QuestionCard
