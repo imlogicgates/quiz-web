@@ -1,4 +1,4 @@
-import { Question } from "@/types/quiz";
+import { Question, QuestionGrade } from "@/types/quiz";
 
 export const mapAnswersToBackend = (
   questions: Question[],
@@ -32,3 +32,22 @@ export const mapAnswersToBackend = (
     })
     .filter(Boolean);
 };
+
+export const detailsToGrade = (
+  questions: Question[],
+  answers: Record<string, { questionId: string; value: string | string[] }>,
+  results: Array<{ id: number | string; correct: boolean }>
+): QuestionGrade[] =>
+  questions.map((q) => {
+    const userAnswer =
+      answers[q.id as keyof typeof answers]?.value ??
+      (q.type === "checkbox" ? [] : "");
+    const result = results.find((r) => String(r.id) === String(q.id));
+    return {
+      questionId: String(q.id),
+      correct: result ? result.correct : false,
+      userAnswer,
+      correctAnswer: q.type === "checkbox" ? [] : "",
+      explanation: undefined,
+    };
+  });

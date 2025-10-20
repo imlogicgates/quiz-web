@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ErrorStatus } from "./components/ErrorStatus";
 import { LoadingStatus } from "./components/LoadingStatus";
-import { mapAnswersToBackend } from "./utils";
+import { detailsToGrade, mapAnswersToBackend } from "./utils";
 
 export default function QuizApp() {
   const { state, actions, computed } = useQuizState();
@@ -110,20 +110,11 @@ export default function QuizApp() {
         (correctAnswers / Math.max(1, totalQuestions)) * 100
       );
 
-      const details = state.quiz.questions.map((q) => {
-        const userAnswer =
-          state.answers[q.id]?.value ?? (q.type === "checkbox" ? [] : "");
-        const result = serverGrade.results.find(
-          (r) => String(r.id) === String(q.id)
-        );
-        return {
-          questionId: String(q.id),
-          correct: result ? result.correct : false,
-          userAnswer,
-          correctAnswer: q.type === "checkbox" ? [] : "",
-          explanation: undefined,
-        };
-      });
+      const details = detailsToGrade(
+        state.quiz.questions,
+        state.answers,
+        serverGrade.results
+      );
 
       const grade: GradeResult = {
         score: correctAnswers,
