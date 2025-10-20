@@ -165,8 +165,8 @@ export default function QuizApp() {
             <p className="text-lg text-gray-600 mb-6">
               {state.quiz.description}
             </p>
-            <div className="bg-blue-50 rounded-lg p-6 mb-6">
-              <h2 className="text-xl font-semibold text-blue-800 mb-2">
+            <div className="bg-gray-50 rounded-lg p-6 mb-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-2">
                 Quiz Information
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -188,7 +188,7 @@ export default function QuizApp() {
             </div>
             <button
               onClick={handleStartQuiz}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-lg transition-colors"
+              className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-8 rounded-lg transition-colors"
             >
               Start Quiz
             </button>
@@ -242,7 +242,7 @@ export default function QuizApp() {
                   onClick={() => actions.go(index)}
                   className={`w-10 h-10 rounded-full text-sm font-medium transition-colors ${
                     index === state.currentQuestionIndex
-                      ? "bg-blue-600 text-white"
+                      ? "bg-gray-600 text-white"
                       : state.answers[state.quiz!.questions[index].id]
                       ? "bg-green-100 text-green-800"
                       : "bg-gray-200 text-gray-600 hover:bg-gray-300"
@@ -263,7 +263,7 @@ export default function QuizApp() {
             ) : (
               <button
                 onClick={actions.next}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+                className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
               >
                 Next
               </button>
