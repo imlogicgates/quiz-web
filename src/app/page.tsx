@@ -12,15 +12,9 @@ import { LoadingStatus } from "./components/LoadingStatus";
 
 export default function QuizApp() {
   const { state, actions, computed } = useQuizState();
-  const [showReview, setShowReview] = useState(false);
   const [startTime, setStartTime] = useState<number>(0);
 
-  const {
-    data: quizzes,
-    isLoading: isLoadingQuiz,
-    isError: isErrorQuiz,
-    error: errorQuiz,
-  } = useQuery({
+  const { data: quizzes, isLoading: isLoadingQuiz } = useQuery({
     queryKey: ["quiz"],
     queryFn: () =>
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/quiz`).then((res) =>
@@ -178,7 +172,6 @@ export default function QuizApp() {
   };
 
   const handleRetakeQuiz = () => {
-    setShowReview(false);
     actions.reset();
     setStartTime(Date.now());
     actions.start();
